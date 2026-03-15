@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Mail, Lock, User, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import logoIcon from '@/assets/mycortes-logo.png';
 import heroImage from '@/assets/hero-coastal.jpg';
 
 const emailSchema = z.string().email('Please enter a valid email address');
@@ -205,8 +204,8 @@ const Auth = () => {
           <div className="absolute inset-0 hero-gradient opacity-90" />
           <div className="relative z-10 flex flex-col justify-between h-full p-10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm">
-                <img src={logoIcon} alt="myCortes logo" className="w-full h-full object-cover" />
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/10 backdrop-blur-sm">
+                <img src="/cortes.png" alt="Municipality of Cortes logo" className="w-full h-full object-contain" />
               </div>
               <div>
                 <p className="text-white/70 text-sm font-medium">Municipality of</p>
@@ -239,8 +238,8 @@ const Auth = () => {
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-white/20 backdrop-blur-sm">
-                <img src={logoIcon} alt="myCortes logo" className="w-full h-full object-cover" />
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-white/20 backdrop-blur-sm">
+                <img src="/cortes.png" alt="Municipality of Cortes logo" className="w-full h-full object-contain" />
               </div>
               <div>
                 <p className="text-white/70 text-sm font-medium">Municipality of</p>
