@@ -87,9 +87,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signInWithGoogle = async () => {
-    const redirectUri = `${window.location.origin}/auth`;
-    const result = await lovable.auth.signInWithOAuth('google', { redirect_uri: redirectUri });
-    return { error: (result.error as Error) || null };
+    try {
+      // Allow configuration of the redirect URL via env var (useful for Vercel deployments)
+      const redirectUri =
+        (!import.meta.env.DEV && import.meta.env.VITE_REDIRECT_URL)
+          ? (import.meta.env.VITE_REDIRECT_URL as string)
+          : `${window.location.origin}/auth`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUri,
+        },
+      });
+
+      if (error) {
+        console.error('OAuth error:', error);
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      console.error('Google sign-in error:', err);
+      return { error: err };
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {

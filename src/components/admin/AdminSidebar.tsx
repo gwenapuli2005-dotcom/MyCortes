@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Megaphone,
   Newspaper,
+  MessageCircle,
   LogOut,
   ChevronLeft,
   ChevronRight,

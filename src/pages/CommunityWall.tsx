@@ -49,7 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { PhotoUpload } from '@/components/PhotoUpload';
 
 interface Post {
   id: string;
@@ -117,6 +117,7 @@ const CommunityWall = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -150,6 +151,11 @@ const CommunityWall = () => {
 
   // Filter posts based on active tab, category, and search
   const filteredPosts = posts?.filter((post) => {
+    // Only show Government (announcement/project) posts
+    if (post.post_type !== 'announcement' && post.post_type !== 'project') {
+      return false;
+    }
+
     let passesTabFilter = true;
     if (activeFilter === 'reports') {
       passesTabFilter = post.post_type === 'report';
@@ -182,7 +188,7 @@ const CommunityWall = () => {
 
   // Create post mutation
   const createPostMutation = useMutation({
-    mutationFn: async (postData: { title: string; content: string; category: string }) => {
+    mutationFn: async (postData: { title: string; content: string; category: string; photoUrl?: string | null }) => {
       const { error } = await supabase
         .from('posts')
         .insert({
@@ -193,6 +199,7 @@ const CommunityWall = () => {
           is_anonymous: true,
           created_by: user?.id || null,
           created_by_role: 'user',
+          photo_url: postData.photoUrl,
         });
       if (error) throw error;
     },
@@ -202,6 +209,7 @@ const CommunityWall = () => {
       setTitle('');
       setContent('');
       setCategory('');
+      setPhotoUrl(null);
       toast.success('Report submitted successfully!');
     },
     onError: (error) => {
@@ -280,7 +288,7 @@ const CommunityWall = () => {
       toast.error('Please fill in all fields');
       return;
     }
-    createPostMutation.mutate({ title, content, category });
+    createPostMutation.mutate({ title, content, category, photoUrl });
   };
 
   const handlePostClick = (post: Post) => {
@@ -307,62 +315,6 @@ const CommunityWall = () => {
                 <p className="text-xs text-muted-foreground">Reports, announcements & projects</p>
               </div>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-1">
-                  <Plus className="h-4 w-4" />
-                  Report
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Submit Anonymous Report</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmitReport} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Brief title of the issue"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {reportCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="content">Description</Label>
-                    <Textarea
-                      id="content"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      placeholder="Describe the issue in detail..."
-                      rows={4}
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={createPostMutation.isPending}
-                  >
-                    {createPostMutation.isPending ? 'Submitting...' : 'Submit Report'}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
           </div>
         </header>
 

@@ -7,17 +7,17 @@ import { BottomNav } from "@/components/BottomNav";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background lg:pt-14">
-      <div className="app-container pb-24 lg:pb-8">
+      <div className="app-container pb-24 lg:pb-12">
         {/* Hero Header */}
         <HeroHeader />
 
         {/* Main Content */}
-        <main className="space-y-6 pt-2">
+        <main className="space-y-6 lg:space-y-10 pt-2 lg:pt-8">
           {/* Quick Services Grid */}
           <QuickServices />
 
           {/* Desktop: two-column layout for status + announcements */}
-          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
+          <div className="lg:grid lg:grid-cols-2 lg:gap-8 space-y-6 lg:space-y-0 desktop-sections">
             {/* Request Status */}
             <RequestStatusCard />
 

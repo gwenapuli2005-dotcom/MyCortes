@@ -30,6 +30,8 @@ const AdminRequests = () => {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [signedPhotoUrl, setSignedPhotoUrl] = useState<string | null>(null);
+  const [signedUrlsByRequest, setSignedUrlsByRequest] = useState<Record<string, string>>({});
   const [adminNotes, setAdminNotes] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -43,7 +45,24 @@ const AdminRequests = () => {
       .from('service_requests')
       .select('*')
       .order('created_at', { ascending: false });
-    if (data) setRequests(data);
+
+    if (data) {
+      setRequests(data);
+
+      // Pre-generate signed URLs for any request images so admins can view them.
+      const signedUrlEntries = await Promise.all(
+        data.map(async (req) => {
+          if (!req.photo_url) return [req.id, null] as const;
+          const signed = await getSignedPhotoUrl(req.photo_url, { silent: true });
+          return [req.id, signed] as const;
+        })
+      );
+
+      setSignedUrlsByRequest(
+        Object.fromEntries(signedUrlEntries.filter(([, val]) => val) as Array<[string, string]>)
+      );
+    }
+
     setIsLoading(false);
   };
 
@@ -68,9 +87,65 @@ const AdminRequests = () => {
     setIsUpdating(false);
   };
 
-  const openRequestDetails = (req: ServiceRequest) => {
+  const getStoragePathFromUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      const marker = '/storage/v1/object/public/';
+      const idx = parsed.pathname.indexOf(marker);
+      if (idx !== -1) {
+        let path = parsed.pathname.substring(idx + marker.length);
+        if (path.startsWith('uploads/')) {
+          path = path.replace(/^uploads\//, '');
+        }
+        return path;
+      }
+    } catch {
+      // not a full URL; continue below
+    }
+
+    if (url.startsWith('uploads/')) {
+      return url.replace(/^uploads\//, '');
+    }
+
+    return url;
+  };
+
+  const getSignedPhotoUrl = async (photoUrl: string, { silent }: { silent?: boolean } = {}) => {
+    const path = getStoragePathFromUrl(photoUrl);
+    if (!path) return null;
+
+    const { data, error } = await supabase.storage
+      .from('uploads')
+      .createSignedUrl(path, 60 * 60);
+
+    if (error) {
+      console.error('Failed to create signed URL:', error);
+      if (!silent) {
+        toast.error('Unable to access the uploaded image. Check storage permissions.');
+      }
+      return null;
+    }
+
+    return data.signedUrl;
+  };
+
+  const openRequestDetails = async (req: ServiceRequest) => {
     setSelectedRequest(req);
     setAdminNotes(req.admin_notes || '');
+
+    if (!req.photo_url) {
+      setSignedPhotoUrl(null);
+      return;
+    }
+
+    const existing = signedUrlsByRequest[req.id];
+    if (existing) {
+      setSignedPhotoUrl(existing);
+      return;
+    }
+
+    const signedUrl = await getSignedPhotoUrl(req.photo_url);
+    setSignedPhotoUrl(signedUrl);
   };
 
   const stats = {
@@ -152,7 +227,14 @@ const AdminRequests = () => {
                         </div>
                         {req.photo_url && (
                           <div className="w-12 h-12 rounded-lg overflow-hidden ml-3">
-                            <img src={req.photo_url} alt="" className="w-full h-full object-cover" />
+                            <img
+                              src={signedUrlsByRequest[req.id] ?? req.photo_url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
                           </div>
                         )}
                       </div>
@@ -182,12 +264,16 @@ const AdminRequests = () => {
             <div className="space-y-4">
               {selectedRequest.photo_url && (
                 <div className="space-y-2">
-                  <img 
-                    src={selectedRequest.photo_url} 
-                    alt="Request" 
+                  <img
+                    src={signedPhotoUrl ?? selectedRequest.photo_url}
+                    alt="Request"
                     className="w-full h-48 object-cover rounded-xl"
+                    onError={(e) => {
+                      // Hide broken images (e.g., private storage URLs) so UI remains clean
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
-                  <ImageAnalysis imageUrl={selectedRequest.photo_url} />
+                  <ImageAnalysis imageUrl={signedPhotoUrl ?? selectedRequest.photo_url} />
                 </div>
               )}
 

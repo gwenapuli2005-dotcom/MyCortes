@@ -156,9 +156,16 @@ const AdminTouristSpots = () => {
           .from('uploads')
           .getPublicUrl(filePath);
 
+        // For admin viewing, we need signed URLs since the bucket is private
+        const { data: signedUrlData, error: signedError } = await supabase.storage
+          .from('uploads')
+          .createSignedUrl(filePath, 60 * 60); // 1 hour
+
+        const finalUrl = signedUrlData?.signedUrl || publicUrl;
+
         setEditingSpot(prev => ({
           ...prev,
-          images: [...(prev?.images || []), publicUrl],
+          images: [...(prev?.images || []), finalUrl],
         }));
 
         toast.success(`${file.name} uploaded`);

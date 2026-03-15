@@ -43,17 +43,17 @@ export const AnnouncementsFeed = () => {
   });
 
   return (
-    <section className="px-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Announcements</h2>
+    <section className="px-4 lg:px-8">
+      <div className="flex items-center justify-between mb-6 lg:mb-6">
+        <h2 className="text-lg lg:text-2xl font-semibold">Announcements</h2>
         <button 
           onClick={() => navigate('/updates')}
-          className="text-sm text-primary font-medium flex items-center gap-1"
+          className="text-sm lg:text-base text-primary font-medium flex items-center gap-1 hover:text-primary/80 transition-colors"
         >
-          View All <ChevronRight className="h-4 w-4" />
+          View All <ChevronRight className="h-4 w-4 lg:h-5 lg:w-5" />
         </button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 lg:space-y-4">
         {isLoading ? (
           <div className="flex justify-center py-6">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -72,26 +72,26 @@ export const AnnouncementsFeed = () => {
               <Card 
                 key={announcement.id} 
                 variant="elevated"
-                className="animate-slide-up cursor-pointer"
+                className="animate-slide-up cursor-pointer hover:shadow-lg transition-all duration-300 announcement-card"
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => {
                   setSelectedAnnouncement(announcement);
                   setIsDetailOpen(true);
                 }}
               >
-                <CardHeader className="pb-2">
-                  <div className="flex items-start gap-3">
-                    <div className={cn("p-2 rounded-xl", config.color)}>
-                      <Icon className="h-4 w-4" />
+                <CardHeader className="pb-2 lg:pb-3">
+                  <div className="flex items-start gap-3 lg:gap-4">
+                    <div className={cn("p-2 lg:p-3 rounded-xl flex-shrink-0", config.color)}>
+                      <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-sm line-clamp-1">{announcement.title}</h3>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                        <h3 className="font-semibold text-sm lg:text-base line-clamp-1">{announcement.title}</h3>
+                        <span className="text-xs lg:text-sm text-muted-foreground flex-shrink-0">
                           {format(new Date(announcement.published_at), 'MMM d')}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-xs lg:text-sm text-muted-foreground line-clamp-2">
                         {announcement.excerpt || announcement.content}
                       </p>
                     </div>

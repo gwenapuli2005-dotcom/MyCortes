@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* Leaflet map styles - imported dynamically but needs base z-index */
 .leaflet-container {
@@ -272,6 +272,112 @@
     }
     50% {
       opacity: 0.7;
+    }
+  }
+
+  /* Desktop-specific enhancements */
+  @media (min-width: 1024px) {
+    /* Hero Header enhancements */
+    .desktop-hero {
+      padding-top: 2rem;
+      padding-bottom: 4rem;
+      padding-left: 3rem;
+      padding-right: 3rem;
+    }
+
+    .desktop-hero h2 {
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    /* Quick Services desktop improvements */
+    .desktop-service-btn {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .desktop-service-btn:hover div {
+      transform: scale(1.1);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .desktop-service-btn:hover span {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Desktop sections layout */
+    .desktop-sections {
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Card hover effects for desktop */
+    .announcement-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .announcement-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Typography improvements */
+    h1 {
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      letter-spacing: -0.01em;
+    }
+
+    /* Enhanced spacing utilities for desktop */
+    @layer components {
+      .lg\:space-y-10 > * + * {
+        margin-top: 2.5rem;
+      }
+
+      .lg\:px-8 {
+        padding-left: 2rem;
+        padding-right: 2rem;
+      }
+
+      .lg\:px-12 {
+        padding-left: 3rem;
+        padding-right: 3rem;
+      }
+    }
+
+    /* Improved shadow system for desktop */
+    .shadow-soft {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .hover\:shadow-lg:hover {
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Button hover animations */
+    button {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 }

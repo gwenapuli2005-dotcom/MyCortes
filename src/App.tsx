@@ -20,44 +20,49 @@ import AdminTouristSpots from "./pages/AdminTouristSpots";
 import AdminFeedback from "./pages/AdminFeedback";
 import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminPosts from "./pages/AdminPosts";
-import TouristSpots from "./pages/TouristSpots";
 import CommunityWall from "./pages/CommunityWall";
+import TouristSpots from "./pages/TouristSpots";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/updates" element={<Updates />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/request-service" element={<RequestService />} />
-            <Route path="/report-issue" element={<ReportIssue />} />
-            <Route path="/my-requests" element={<MyRequests />} />
-            <Route path="/feedback" element={<Feedback />} />
-            <Route path="/community" element={<CommunityWall />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/requests" element={<AdminRequests />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/announcements" element={<AdminAnnouncements />} />
-            <Route path="/admin/posts" element={<AdminPosts />} />
-            <Route path="/admin/tourist-spots" element={<AdminTouristSpots />} />
-            <Route path="/admin/feedback" element={<AdminFeedback />} />
-            <Route path="/tourist-spots" element={<TouristSpots />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<Auth />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/updates" element={<Updates />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/request-service" element={<RequestService />} />
+              <Route path="/report-issue" element={<ReportIssue />} />
+              <Route path="/my-requests" element={<MyRequests />} />
+              <Route path="/feedback" element={<Feedback />} />
+              <Route path="/community" element={<CommunityWall />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/requests" element={<AdminRequests />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+              <Route path="/admin/posts" element={<AdminPosts />} />
+              <Route path="/admin/tourist-spots" element={<AdminTouristSpots />} />
+              <Route path="/admin/feedback" element={<AdminFeedback />} />
+              <Route path="/tourist-spots" element={<TouristSpots />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

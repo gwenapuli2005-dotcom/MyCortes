@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Mail, Lock, User, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -21,9 +22,48 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; fullName?: string }>({});
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [oauthDebugInfo, setOauthDebugInfo] = useState<string | null>(null);
 
   const { user, isAdmin, signInWithGoogle, signInWithEmail, signUpWithEmail, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Handle OAuth callback (hash-based or query-based) and finalize Supabase session
+  useEffect(() => {
+    const handleOAuthRedirect = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const searchParams = new URLSearchParams(window.location.search);
+      const error = hashParams.get('error') || searchParams.get('error');
+      const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+
+      // If Supabase returned an error, show it and clear URL
+      if (error) {
+        console.error('OAuth callback error:', error, errorDescription);
+        const message = errorDescription || error;
+        toast.error(`Authentication Error: ${message}`);
+        setOauthDebugInfo(`Error: ${message}`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+      }
+
+      // If we're in the middle of an OAuth redirect, finalize the session
+      if (hashParams.has('access_token') || searchParams.has('code')) {
+        const { data, error: callbackError } = await supabase.auth.getSessionFromUrl({ storeSession: true });
+        if (callbackError) {
+          console.error('Failed to complete OAuth redirect:', callbackError);
+          toast.error('Authentication failed. Please try again.');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+
+        if (data?.session) {
+          // Clean URL once we have a session
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    };
+
+    handleOAuthRedirect();
+  }, []);
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -96,15 +136,25 @@ const Auth = () => {
     try {
       const { error } = await signInWithGoogle();
       if (error) {
-        const message = error.message || '';
-        if (message.toLowerCase().includes('invalid_client') || message.toLowerCase().includes('oauth')) {
-          toast.error('Google login is not configured correctly yet. Please use email/password for now.');
+        const errorMessage = error?.message || 'Google login failed';
+        
+        // More specific error messages
+        if (errorMessage.toLowerCase().includes('invalid_client')) {
+          toast.error('Google OAuth is not configured correctly. Please contact support.');
+        } else if (errorMessage.toLowerCase().includes('invalid_grant')) {
+          toast.error('Google authentication token expired. Please try again.');
+        } else if (errorMessage.toLowerCase().includes('redirect_uri')) {
+          toast.error('Redirect URI mismatch. Check Google Cloud and Supabase configuration.');
         } else {
-          toast.error(message);
+          toast.error('Google login is temporarily unavailable. Please use email/password.');
         }
+        
+        console.error('Google Auth Error:', error);
       }
+      // Note: If successful, the OAuth flow will redirect
     } catch (err: any) {
-      toast.error('Google sign-in is currently unavailable.');
+      console.error('Google sign-in exception:', err);
+      toast.error('Google sign-in failed. Please try again or use email/password.');
     }
     setIsSubmitting(false);
   };
