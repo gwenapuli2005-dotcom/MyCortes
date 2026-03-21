@@ -11,7 +11,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Menu
+  Menu,
+  Building2,
+  Image
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,8 @@ const menuItems = [
   { icon: Users, label: 'Users', path: '/admin/users' },
   { icon: Megaphone, label: 'Announcements', path: '/admin/announcements' },
   { icon: MapPin, label: 'Tourist Spots', path: '/admin/tourist-spots' },
+  { icon: Building2, label: 'Directory', path: '/admin/directory' },
+  { icon: Image, label: 'Government Wall', path: '/admin/government-wall' },
   { icon: MessageSquare, label: 'Feedback', path: '/admin/feedback' },
 ];
 

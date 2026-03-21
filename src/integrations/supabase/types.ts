@@ -1,3 +1,4 @@
+// Updated with 3 new tables: admin_notifications, directory_entries, government_wall_images
 export type Json =
   | string
   | number
@@ -399,6 +400,105 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      admin_notifications: {
+        Row: {
+          id: string
+          title: string
+          message: string
+          notification_type: string
+          is_read: boolean
+          related_entity_type: string | null
+          related_entity_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          message: string
+          notification_type?: string
+          is_read?: boolean
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          message?: string
+          notification_type?: string
+          is_read?: boolean
+          related_entity_type?: string | null
+          related_entity_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      directory_entries: {
+        Row: {
+          id: string
+          entry_type: string
+          name: string
+          description: string | null
+          address: string | null
+          phone: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          entry_type: string
+          name: string
+          description?: string | null
+          address?: string | null
+          phone?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          entry_type?: string
+          name?: string
+          description?: string | null
+          address?: string | null
+          phone?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      government_wall_images: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          image_url: string
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          image_url: string
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          image_url?: string
+          display_order?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -11,9 +11,10 @@ const services = [
   { icon: FileText, label: "Request Service", color: "text-primary", bgColor: "bg-secondary", path: "/request-service", requiresAuth: true },
   { icon: Calendar, label: "Events", color: "text-success", bgColor: "bg-success/10", path: "/updates", requiresAuth: false },
   { icon: MessageSquare, label: "Feedback", color: "text-warning", bgColor: "bg-warning/10", path: "/feedback", requiresAuth: true },
-  { icon: MapPin, label: "Directory", color: "text-primary", bgColor: "bg-primary/10", path: "/services", requiresAuth: false },
-  { icon: Building2, label: "Offices", color: "text-muted-foreground", bgColor: "bg-muted", path: "/services", requiresAuth: false },
-  { icon: Heart, label: "Programs", color: "text-emergency", bgColor: "bg-emergency/10", path: "/services", requiresAuth: false },
+  { icon: MapPin, label: "Directory", color: "text-primary", bgColor: "bg-primary/10", path: "/directory", requiresAuth: false },
+  { icon: Building2, label: "Offices", color: "text-muted-foreground", bgColor: "bg-muted", path: "/directory/offices", requiresAuth: false },
+  { icon: Heart, label: "Programs", color: "text-emergency", bgColor: "bg-emergency/10", path: "/directory/programs", requiresAuth: false },
+  { icon: AlertCircle, label: "Emergency", color: "text-emergency", bgColor: "bg-emergency/10", path: "/emergency", requiresAuth: false },
   { icon: Compass, label: "Tourism", color: "text-accent", bgColor: "bg-accent/10", path: "/tourist-spots", requiresAuth: false },
 ];
 

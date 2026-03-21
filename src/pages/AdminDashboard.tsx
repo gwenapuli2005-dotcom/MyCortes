@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   ClipboardList, Users, MapPin, MessageSquare, 
-  TrendingUp, Clock, CheckCircle, XCircle
+  TrendingUp, Clock, CheckCircle, XCircle, AlertTriangle
 } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { 
@@ -32,6 +32,7 @@ const AdminDashboard = () => {
     totalUsers: 0,
     totalSpots: 0,
     totalFeedback: 0,
+    overdueReports: 0,
   });
   const [statusData, setStatusData] = useState<{ name: string; value: number; fill: string }[]>([]);
   const [weeklyData, setWeeklyData] = useState<{ date: string; requests: number }[]>([]);
@@ -111,6 +112,19 @@ const AdminDashboard = () => {
           .sort((a, b) => b.count - a.count)
           .slice(0, 5)
       );
+
+      // Overdue report notifications
+      const oneWeekAgo = subDays(new Date(), 7);
+      const overdueReports = requests.filter(r =>
+        ['pending', 'in_progress'].includes(r.status) &&
+        new Date(r.created_at) < oneWeekAgo &&
+        r.category?.toString().toLowerCase().includes('report')
+      ).length;
+
+      setStats(prev => ({
+        ...prev,
+        overdueReports,
+      }));
     }
   };
 
@@ -143,6 +157,55 @@ const AdminDashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Overdue Reports Alert */}
+      {stats.overdueReports > 0 && (
+        <Card variant="elevated" className="border-destructive !bg-emergency/10 mb-6">
+          <CardContent>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-emergency" />
+                <div>
+                  <p className="font-semibold text-emergency">{stats.overdueReports} unresolved report(s) older than 7 days</p>
+                  <p className="text-sm text-muted-foreground">Review and resolve these reports immediately</p>
+                </div>
+              </div>
+              <button
+                onClick={() => window.location.assign('/admin/requests')}
+                className="rounded-lg px-3 py-2 bg-emergency text-emergency-foreground hover:bg-emergency/90 text-sm font-medium"
+              >
+                Go to Requests
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Connected Services Block */}
+      <Card variant="elevated" className="mb-6">
+        <CardContent>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <p className="font-semibold">Connected Public Services</p>
+              <p className="text-sm text-muted-foreground">View all public access points for Office/Program directory and emergency contacts.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="rounded-lg px-3 py-2 border border-primary text-primary text-sm hover:bg-primary/10"
+                onClick={() => window.location.assign('/directory')}
+              >
+                Directory
+              </button>
+              <button
+                className="rounded-lg px-3 py-2 border border-emergency text-emergency text-sm hover:bg-emergency/10"
+                onClick={() => window.location.assign('/emergency')}
+              >
+                Emergency
+              </button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

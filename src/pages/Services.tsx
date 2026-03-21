@@ -13,7 +13,8 @@ import {
   Heart,
   Wallet,
   ArrowLeft,
-  ChevronRight
+  ChevronRight,
+  Image
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +62,33 @@ const services = [
     color: "text-success", 
     bgColor: "bg-success/10",
     path: "/tourist-spots",
+    requiresAuth: false
+  },
+  { 
+    icon: Building2, 
+    label: "Municipal Directory", 
+    description: "Offices, Programs, and Emergency contacts",
+    color: "text-primary", 
+    bgColor: "bg-primary/10",
+    path: "/directory",
+    requiresAuth: false
+  },
+  { 
+    icon: AlertCircle, 
+    label: "Emergency Assistance", 
+    description: "Call emergency services with one tap",
+    color: "text-emergency", 
+    bgColor: "bg-emergency/10",
+    path: "/emergency",
+    requiresAuth: false
+  },
+  { 
+    icon: Image, 
+    label: "Government Wall", 
+    description: "Latest government announcements and updates",
+    color: "text-accent", 
+    bgColor: "bg-accent/10",
+    path: "/government-wall",
     requiresAuth: false
   },
 ];

@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { AdminSidebar } from './AdminSidebar';
+import { AdminNotifications } from '../AdminNotifications';
 import { cn } from '@/lib/utils';
 
 interface AdminLayoutProps {
@@ -41,13 +42,14 @@ export const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => 
       <main className="lg:ml-64 min-h-screen">
         {/* Header */}
         <header className="h-14 lg:h-16 mt-14 lg:mt-0 border-b border-border bg-card/50 backdrop-blur-sm sticky top-14 lg:top-0 z-20">
-          <div className="h-full px-4 lg:px-6 flex items-center">
+          <div className="h-full px-4 lg:px-6 flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold text-foreground">{title}</h1>
               {subtitle && (
                 <p className="text-sm text-muted-foreground">{subtitle}</p>
               )}
             </div>
+            <AdminNotifications />
           </div>
         </header>
 

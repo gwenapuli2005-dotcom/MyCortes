@@ -22,6 +22,12 @@ import AdminAnnouncements from "./pages/AdminAnnouncements";
 import AdminPosts from "./pages/AdminPosts";
 import CommunityWall from "./pages/CommunityWall";
 import TouristSpots from "./pages/TouristSpots";
+import Directory from "./pages/Directory";
+import Emergency from "./pages/Emergency";
+import Dashboard from "./pages/Dashboard";
+import AdminDirectory from "./pages/AdminDirectory";
+import GovernmentWall from "./pages/GovernmentWall";
+import PublicGovernmentWall from "./pages/PublicGovernmentWall";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +44,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<Auth />} />
               <Route path="/services" element={<Services />} />
@@ -54,7 +61,13 @@ const App = () => (
               <Route path="/admin/announcements" element={<AdminAnnouncements />} />
               <Route path="/admin/posts" element={<AdminPosts />} />
               <Route path="/admin/tourist-spots" element={<AdminTouristSpots />} />
+              <Route path="/admin/directory" element={<AdminDirectory />} />
+              <Route path="/admin/government-wall" element={<GovernmentWall />} />
               <Route path="/admin/feedback" element={<AdminFeedback />} />
+              <Route path="/directory" element={<Directory />} />
+              <Route path="/directory/:category" element={<Directory />} />
+              <Route path="/emergency" element={<Emergency />} />
+              <Route path="/government-wall" element={<PublicGovernmentWall />} />
               <Route path="/tourist-spots" element={<TouristSpots />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

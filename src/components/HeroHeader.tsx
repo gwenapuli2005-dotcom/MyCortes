@@ -46,7 +46,7 @@ export const HeroHeader = () => {
           <p className="text-white/70 text-sm lg:text-lg leading-relaxed max-w-lg">Your digital gateway to municipal services and community engagement</p>
         </div>
 
-        <Button variant="accent" size="lg" className="w-full lg:w-auto lg:px-8 lg:py-3 lg:text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200" onClick={() => navigate('/request-service')}>
+        <Button variant="accent" size="lg" className="w-full lg:w-auto lg:px-8 lg:py-3 lg:text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-200" onClick={() => navigate('/report-issue')}>
           <span>Report an Issue</span>
         </Button>
       </div>
