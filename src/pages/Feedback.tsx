@@ -4,13 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { BottomNav } from '@/components/BottomNav';
+
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, MessageSquare, Star, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BottomNav } from '@/components/BottomNav';
 
 const Feedback = () => {
   const navigate = useNavigate();
@@ -71,7 +72,6 @@ const Feedback = () => {
             </Button>
           </div>
         </div>
-        <BottomNav currentPath="/services" onNavigate={(path) => navigate(path)} />
       </div>
     );
   }
@@ -166,7 +166,6 @@ const Feedback = () => {
           </AuthGuard>
         </div>
       </div>
-
       <BottomNav currentPath="/services" onNavigate={(path) => navigate(path)} />
     </div>
   );

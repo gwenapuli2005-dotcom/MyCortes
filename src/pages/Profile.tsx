@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { BottomNav } from '@/components/BottomNav';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { NotificationList } from '@/components/NotificationList';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, 
@@ -18,8 +20,11 @@ import {
   LogOut, 
   Shield,
   Loader2,
-  Save
+  Save,
+  Bell,
+  History
 } from 'lucide-react';
+import { BottomNav } from '@/components/BottomNav';
 
 interface Profile {
   full_name: string | null;
@@ -29,10 +34,20 @@ interface Profile {
   avatar_url: string | null;
 }
 
+interface SystemNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'request_update' | 'approval' | 'rejection' | 'completion';
+  is_read: boolean;
+  created_at: string;
+}
+
 const Profile = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading, isAdmin, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,6 +58,7 @@ const Profile = () => {
       navigate('/auth');
     } else if (user) {
       fetchProfile();
+      fetchNotifications();
     }
   }, [user, authLoading, navigate]);
 
@@ -60,6 +76,31 @@ const Profile = () => {
       setEditedProfile(data);
     }
     setIsLoading(false);
+  };
+
+  const fetchNotifications = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('system_notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setNotifications(data);
+    }
+  };
+
+  const markNotificationAsRead = async (id: string) => {
+    await supabase
+      .from('system_notifications')
+      .update({ is_read: true })
+      .eq('id', id);
+
+    setNotifications(prev =>
+      prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+    );
   };
 
   const handleSave = async () => {
@@ -148,135 +189,190 @@ const Profile = () => {
         {/* Curved transition */}
         <div className="h-6 bg-background rounded-t-3xl -mt-6 relative z-10" />
 
-        {/* Profile Card */}
-        <div className="px-4 -mt-2 space-y-4">
-          <Card variant="elevated" className="animate-slide-up">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Profile Information</CardTitle>
-                {!isEditing ? (
-                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => {
-                      setIsEditing(false);
-                      setEditedProfile(profile);
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                      Save
-                    </Button>
+        {/* Tabs */}
+        <div className="px-4 -mt-2">
+          <Tabs defaultValue="profile" className="space-y-4">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="profile" className="gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2 relative">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Notifications</span>
+                <span className="sm:hidden">Alerts</span>
+                {notifications.some(n => !n.is_read) && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {notifications.filter(n => !n.is_read).length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-4">
+              <Card variant="elevated" className="animate-slide-up">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Profile Information</CardTitle>
+                    {!isEditing ? (
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => {
+                          setIsEditing(false);
+                          setEditedProfile(profile);
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                          Save
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-2">
-                  <User className="h-4 w-4" /> Full Name
-                </label>
-                {isEditing ? (
-                  <Input
-                    value={editedProfile?.full_name || ''}
-                    onChange={(e) => setEditedProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
-                    placeholder="Enter your full name"
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground flex items-center gap-2">
+                      <User className="h-4 w-4" /> Full Name
+                    </label>
+                    {isEditing ? (
+                      <Input
+                        value={editedProfile?.full_name || ''}
+                        onChange={(e) => setEditedProfile(prev => prev ? {...prev, full_name: e.target.value} : null)}
+                        placeholder="Enter your full name"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile?.full_name || 'Not set'}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email
+                    </label>
+                    <p className="font-medium">{user.email}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Phone className="h-4 w-4" /> Phone
+                    </label>
+                    {isEditing ? (
+                      <Input
+                        value={editedProfile?.phone || ''}
+                        onChange={(e) => setEditedProfile(prev => prev ? {...prev, phone: e.target.value} : null)}
+                        placeholder="Enter your phone number"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile?.phone || 'Not set'}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground flex items-center gap-2">
+                      <MapPin className="h-4 w-4" /> Address
+                    </label>
+                    {isEditing ? (
+                      <Input
+                        value={editedProfile?.address || ''}
+                        onChange={(e) => setEditedProfile(prev => prev ? {...prev, address: e.target.value} : null)}
+                        placeholder="Enter your address"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile?.address || 'Not set'}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground flex items-center gap-2">
+                      <MapPin className="h-4 w-4" /> Barangay
+                    </label>
+                    {isEditing ? (
+                      <Input
+                        value={editedProfile?.barangay || ''}
+                        onChange={(e) => setEditedProfile(prev => prev ? {...prev, barangay: e.target.value} : null)}
+                        placeholder="Enter your barangay"
+                      />
+                    ) : (
+                      <p className="font-medium">{profile?.barangay || 'Not set'}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Admin Dashboard Link */}
+              {isAdmin && (
+                <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+                  <CardContent className="p-4">
+                    <Button
+                      variant="default"
+                      className="w-full"
+                      onClick={() => navigate('/admin')}
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Sign Out */}
+              <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '150ms' }}>
+                <CardContent className="p-4">
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Notifications Tab */}
+            <TabsContent value="notifications" className="space-y-4">
+              <Card variant="elevated">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Notification History
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Track updates and approvals for your requests
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <NotificationList
+                    notifications={notifications}
+                    onMarkAsRead={markNotificationAsRead}
                   />
-                ) : (
-                  <p className="font-medium">{profile?.full_name || 'Not set'}</p>
-                )}
-              </div>
+                </CardContent>
+              </Card>
 
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Mail className="h-4 w-4" /> Email
-                </label>
-                <p className="font-medium">{user.email}</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Phone className="h-4 w-4" /> Phone
-                </label>
-                {isEditing ? (
-                  <Input
-                    value={editedProfile?.phone || ''}
-                    onChange={(e) => setEditedProfile(prev => prev ? {...prev, phone: e.target.value} : null)}
-                    placeholder="Enter your phone number"
-                  />
-                ) : (
-                  <p className="font-medium">{profile?.phone || 'Not set'}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Address
-                </label>
-                {isEditing ? (
-                  <Input
-                    value={editedProfile?.address || ''}
-                    onChange={(e) => setEditedProfile(prev => prev ? {...prev, address: e.target.value} : null)}
-                    placeholder="Enter your address"
-                  />
-                ) : (
-                  <p className="font-medium">{profile?.address || 'Not set'}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Barangay
-                </label>
-                {isEditing ? (
-                  <Input
-                    value={editedProfile?.barangay || ''}
-                    onChange={(e) => setEditedProfile(prev => prev ? {...prev, barangay: e.target.value} : null)}
-                    placeholder="Enter your barangay"
-                  />
-                ) : (
-                  <p className="font-medium">{profile?.barangay || 'Not set'}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Admin Dashboard Link */}
-          {isAdmin && (
-            <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-              <CardContent className="p-4">
-                <Button
-                  variant="default"
-                  className="w-full"
-                  onClick={() => navigate('/admin')}
-                >
-                  <Shield className="h-4 w-4 mr-2" />
-                  Admin Dashboard
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Sign Out */}
-          <Card variant="elevated" className="animate-slide-up" style={{ animationDelay: '150ms' }}>
-            <CardContent className="p-4">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </CardContent>
-          </Card>
+              {/* Quick Link */}
+              <Card variant="elevated">
+                <CardContent className="p-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/my-requests')}
+                  >
+                    View Request Tracking
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
       <BottomNav currentPath="/profile" onNavigate={(path) => navigate(path)} />
     </div>
   );

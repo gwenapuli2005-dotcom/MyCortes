@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BottomNav } from '@/components/BottomNav';
+
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,7 @@ import { PhotoUpload } from '@/components/PhotoUpload';
 import { BarangaySelect } from '@/components/BarangaySelect';
 import { categories } from '@/components/request-service/serviceCategories';
 import { DynamicFormFields } from '@/components/request-service/DynamicFormFields';
+import { BottomNav } from '@/components/BottomNav';
 
 const RequestService = () => {
   const navigate = useNavigate();

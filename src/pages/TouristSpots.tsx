@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BottomNav } from '@/components/BottomNav';
+
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, MapPin, Image as ImageIcon, Loader2 } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
+import { BottomNav } from '@/components/BottomNav';
 
 type TouristSpot = Tables<'tourist_spots'>;
 
@@ -121,7 +122,6 @@ const TouristSpots = () => {
             )}
           </div>
         </div>
-        <BottomNav />
       </div>
     );
   }

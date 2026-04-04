@@ -26,8 +26,6 @@ import Directory from "./pages/Directory";
 import Emergency from "./pages/Emergency";
 import Dashboard from "./pages/Dashboard";
 import AdminDirectory from "./pages/AdminDirectory";
-import GovernmentWall from "./pages/GovernmentWall";
-import PublicGovernmentWall from "./pages/PublicGovernmentWall";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,12 +60,10 @@ const App = () => (
               <Route path="/admin/posts" element={<AdminPosts />} />
               <Route path="/admin/tourist-spots" element={<AdminTouristSpots />} />
               <Route path="/admin/directory" element={<AdminDirectory />} />
-              <Route path="/admin/government-wall" element={<GovernmentWall />} />
               <Route path="/admin/feedback" element={<AdminFeedback />} />
               <Route path="/directory" element={<Directory />} />
               <Route path="/directory/:category" element={<Directory />} />
               <Route path="/emergency" element={<Emergency />} />
-              <Route path="/government-wall" element={<PublicGovernmentWall />} />
               <Route path="/tourist-spots" element={<TouristSpots />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

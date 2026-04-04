@@ -1,0 +1,49 @@
+// Quick reference: How to apply ModernHeader & ModernFooter to other pages
+
+// 1. Import the components
+import { ModernHeader } from "@/components/ModernHeader";
+import { ModernFooter } from "@/components/ModernFooter";
+import { BottomNav } from "@/components/BottomNav";
+
+// 2. Wrap your page content
+const YourPage = () => {
+  return (
+    <>
+      <ModernHeader />
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30 pb-24 lg:pb-12">
+        <div className="max-w-6xl mx-auto px-4 lg:px-6 py-8 lg:py-12">
+          {/* Your page content here */}
+        </div>
+        <ModernFooter />
+      </div>
+      <BottomNav />
+    </>
+  );
+};
+
+export default YourPage;
+
+// Pages that have been updated:
+// ✅ Index.tsx
+// ✅ Services.tsx
+// ✅ Directory.tsx
+// ✅ Emergency.tsx
+// ✅ Updates.tsx
+
+// Pages that could benefit from updates:
+// - CommunityWall.tsx
+// - TouristSpots.tsx
+// - Feedback.tsx
+// - Profile.tsx
+// - RequestService.tsx
+// - ReportIssue.tsx
+// - MyRequests.tsx
+// - PublicGovernmentWall.tsx
+
+// Notes:
+// - The ModernHeader automatically hides on auth pages
+// - The ModernFooter automatically hides on auth pages
+// - Always use max-w-6xl for content container on desktop
+// - Always include responsive padding: px-4 lg:px-6
+// - Always wrap BottomNav at the very end
+// - Use bg-gradient-to-b from-background via-background to-muted/30 for consistent look

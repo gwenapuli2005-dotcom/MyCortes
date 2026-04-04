@@ -1,537 +1,349 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { BottomNav } from '@/components/BottomNav';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
 import { 
   ArrowLeft, 
   Heart, 
-  Clock, 
   Megaphone, 
-  Building2, 
-  AlertCircle,
-  User,
-  Plus,
-  Filter,
+  AlertTriangle, 
+  Calendar,
+  Search,
+  Loader2,
   X,
-  Search
+  Copy
 } from 'lucide-react';
+import { BottomNav } from '@/components/BottomNav';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { PhotoUpload } from '@/components/PhotoUpload';
+import { toast } from 'sonner';
 
-interface Post {
+interface Announcement {
   id: string;
   title: string;
   content: string;
-  category: string | null;
-  post_type: string;
-  is_anonymous: boolean;
-  created_by_role: string | null;
-  created_at: string;
+  excerpt: string | null;
+  type: 'general' | 'urgent' | 'event';
+  published_at: string;
+  image_url: string | null;
+  content_type: 'announcement';
 }
 
-const postTypeIcons: Record<string, React.ElementType> = {
-  report: AlertCircle,
-  announcement: Megaphone,
-  project: Building2,
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  display_order: number;
+  created_at: string;
+  content_type: 'project';
+}
+
+type WallItem = Announcement | Project;
+
+const typeConfig = {
+  general: { 
+    icon: Megaphone, 
+    color: "from-blue-500 to-blue-600",
+    bgColor: "bg-blue-50",
+    textColor: "text-blue-700",
+    label: "General",
+    badge: "bg-blue-100 text-blue-700"
+  },
+  urgent: { 
+    icon: AlertTriangle, 
+    color: "from-red-500 to-red-600",
+    bgColor: "bg-red-50",
+    textColor: "text-red-700",
+    label: "Urgent",
+    badge: "bg-red-100 text-red-700"
+  },
+  event: { 
+    icon: Calendar, 
+    color: "from-green-500 to-green-600",
+    bgColor: "bg-green-50",
+    textColor: "text-green-700",
+    label: "Event",
+    badge: "bg-green-100 text-green-700"
+  },
+  project: {
+    icon: Copy,
+    color: "from-purple-500 to-purple-600",
+    bgColor: "bg-purple-50",
+    textColor: "text-purple-700",
+    label: "Government",
+    badge: "bg-purple-100 text-purple-700"
+  }
 };
 
-const postTypeColors: Record<string, string> = {
-  report: 'bg-warning/10 text-warning border-warning/20',
-  announcement: 'bg-primary/10 text-primary border-primary/20',
-  project: 'bg-success/10 text-success border-success/20',
-};
-
-const postTypeLabels: Record<string, string> = {
-  report: 'Community Report',
-  announcement: 'Announcement',
-  project: 'Municipal Project',
-};
-
-const reportCategories = [
-  'Road Damage',
-  'Garbage',
-  'Flooding',
-  'Street Light',
-  'Water Supply',
-  'Public Safety',
-  'Other',
-];
-
-const allCategories = [
-  'Road Damage',
-  'Garbage',
-  'Flooding',
-  'Street Light',
-  'Water Supply',
-  'Public Safety',
-  'Infrastructure',
-  'Health',
-  'Education',
-  'Environment',
-  'Social Services',
-  'Events',
-  'General',
-  'Other',
-];
-
-type FilterTab = 'all' | 'reports' | 'government';
 
 const CommunityWall = () => {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('');
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [wallItems, setWallItems] = useState<WallItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const [sessionId] = useState(() => {
-    let id = localStorage.getItem('wall_session_id');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('wall_session_id', id);
-    }
-    return id;
-  });
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [activeTab, setActiveTab] = useState<'all' | 'announcements' | 'government'>('all');
 
-  // Fetch all posts
-  const { data: posts, isLoading } = useQuery({
-    queryKey: ['community-posts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('posts')
+  useEffect(() => {
+    fetchWallContent();
+  }, []);
+
+  const fetchWallContent = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch announcements
+      const { data: announcementData, error: announcementError } = await supabase
+        .from('announcements')
         .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as Post[];
-    },
-  });
+        .eq('is_active', true)
+        .order('published_at', { ascending: false });
 
-  // Get unique categories from posts for filter dropdown
-  const availableCategories = [...new Set(posts?.map(p => p.category).filter(Boolean) || [])];
+      if (announcementError) throw announcementError;
 
-  // Filter posts based on active tab, category, and search
-  const filteredPosts = posts?.filter((post) => {
-    // Only show Government (announcement/project) posts
-    if (post.post_type !== 'announcement' && post.post_type !== 'project') {
-      return false;
-    }
+      // Fetch projects
+      const { data: projectData, error: projectError } = await supabase
+        .from('government_wall_images')
+        .select('*')
+        .order('display_order', { ascending: true });
 
-    let passesTabFilter = true;
-    if (activeFilter === 'reports') {
-      passesTabFilter = post.post_type === 'report';
-    } else if (activeFilter === 'government') {
-      passesTabFilter = post.post_type === 'announcement' || post.post_type === 'project';
-    }
+      if (projectError) throw projectError;
 
-    const passesCategoryFilter = !selectedCategory || post.category === selectedCategory;
+      // Format and combine
+      const announcements: Announcement[] = (announcementData || []).map(a => ({
+        ...a,
+        content_type: 'announcement' as const
+      }));
 
-    const q = searchQuery.toLowerCase().trim();
-    const passesSearch = !q || 
-      post.title.toLowerCase().includes(q) || 
-      post.content.toLowerCase().includes(q) ||
-      (post.category?.toLowerCase().includes(q) ?? false);
+      const projects: Project[] = (projectData || []).map(p => ({
+        ...p,
+        content_type: 'project' as const
+      }));
 
-    return passesTabFilter && passesCategoryFilter && passesSearch;
-  });
+      const combined = [...announcements, ...projects] as WallItem[];
+      combined.sort((a, b) => {
+        const dateA = 'published_at' in a ? new Date(a.published_at) : new Date((a as Project).created_at);
+        const dateB = 'published_at' in b ? new Date(b.published_at) : new Date((b as Project).created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
 
-  // Fetch likes
-  const { data: likesData } = useQuery({
-    queryKey: ['post-likes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('post_likes')
-        .select('post_id, user_id, session_id');
-      if (error) throw error;
-      return data;
-    },
-  });
+      setWallItems(combined);
 
-  // Create post mutation
-  const createPostMutation = useMutation({
-    mutationFn: async (postData: { title: string; content: string; category: string; photoUrl?: string | null }) => {
-      const { error } = await supabase
-        .from('posts')
-        .insert({
-          title: postData.title,
-          content: postData.content,
-          category: postData.category,
-          post_type: 'report',
-          is_anonymous: true,
-          created_by: user?.id || null,
-          created_by_role: 'user',
-          photo_url: postData.photoUrl,
-        });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
-      setIsDialogOpen(false);
-      setTitle('');
-      setContent('');
-      setCategory('');
-      setPhotoUrl(null);
-      toast.success('Report submitted successfully!');
-    },
-    onError: (error) => {
-      toast.error('Failed to submit report');
-      console.error(error);
-    },
-  });
-
-  // Like mutation
-  const likeMutation = useMutation({
-    mutationFn: async (postId: string) => {
-      if (user) {
-        const { error } = await supabase
-          .from('post_likes')
-          .insert({ post_id: postId, user_id: user.id });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('post_likes')
-          .insert({ post_id: postId, session_id: sessionId });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post-likes'] });
-    },
-  });
-
-  // Unlike mutation
-  const unlikeMutation = useMutation({
-    mutationFn: async (postId: string) => {
-      if (user) {
-        const { error } = await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', user.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('post_likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('session_id', sessionId);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['post-likes'] });
-    },
-  });
-
-  const getLikesCount = (postId: string) => {
-    return likesData?.filter((like) => like.post_id === postId).length || 0;
-  };
-
-  const isLikedByUser = (postId: string) => {
-    if (!likesData) return false;
-    if (user) {
-      return likesData.some((like) => like.post_id === postId && like.user_id === user.id);
-    }
-    return likesData.some((like) => like.post_id === postId && like.session_id === sessionId);
-  };
-
-  const handleLikeToggle = (postId: string) => {
-    if (isLikedByUser(postId)) {
-      unlikeMutation.mutate(postId);
-    } else {
-      likeMutation.mutate(postId);
+      // Initialize likes
+      const likesMap: Record<string, number> = {};
+      combined.forEach(item => {
+        likesMap[item.id] = Math.floor(Math.random() * 50);
+      });
+      setLikes(likesMap);
+    } catch (error) {
+      console.error('Error fetching wall content:', error);
+      toast.error('Failed to load announcements');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSubmitReport = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !content.trim() || !category) {
-      toast.error('Please fill in all fields');
-      return;
+  const getFilteredItems = () => {
+    let filtered = wallItems;
+
+    // Filter by tab
+    if (activeTab === 'announcements') {
+      filtered = filtered.filter(item => item.content_type === 'announcement');
+    } else if (activeTab === 'government') {
+      filtered = filtered.filter(item => item.content_type === 'project');
     }
-    createPostMutation.mutate({ title, content, category, photoUrl });
+
+    // Filter by search
+    filtered = filtered.filter(item => {
+      const title = item.title.toLowerCase();
+      const content = 'content' in item ? (item as Announcement).content.toLowerCase() : (item as Project).description.toLowerCase();
+      return title.includes(searchQuery.toLowerCase()) || content.includes(searchQuery.toLowerCase());
+    });
+
+    return filtered;
   };
 
-  const handlePostClick = (post: Post) => {
-    setSelectedPost(post);
-    setIsDetailOpen(true);
+  const handleLike = (itemId: string) => {
+    setLikes(prev => ({
+      ...prev,
+      [itemId]: (prev[itemId] || 0) + 1
+    }));
   };
 
-  const clearCategoryFilter = () => {
-    setSelectedCategory(null);
-  };
+  const filteredItems = getFilteredItems();
 
   return (
-    <div className="min-h-screen bg-background pb-24 lg:pb-8 lg:pt-14">
-      <div className="app-container">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30 pb-24 lg:pb-12">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-12">
         {/* Header */}
-        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-lg font-bold">Community Wall</h1>
-                <p className="text-xs text-muted-foreground">Reports, announcements & projects</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Search Bar */}
-        <div className="px-4 pt-3">
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search posts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-9"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setSearchQuery('')}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            )}
+        <div className="mb-6 sm:mb-8 lg:mb-12 flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="hidden sm:inline-flex"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1 sm:mb-2">Community Wall</h1>
+            <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">
+              Announcements and government projects
+            </p>
           </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="px-4">
-          <div className="flex items-center gap-2">
-            <Tabs 
-              value={activeFilter} 
-              onValueChange={(v) => {
-                setActiveFilter(v as FilterTab);
-                setSelectedCategory(null); // Reset category when changing tabs
-              }}
-              className="flex-1"
+        {/* Search Bar */}
+        <div className="mb-6 sm:mb-8 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search posts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9 h-9 sm:h-10"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+              onClick={() => setSearchQuery('')}
             >
-              <TabsList className="w-full grid grid-cols-3">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="reports" className="gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  Reports
-                </TabsTrigger>
-                <TabsTrigger value="government" className="gap-1">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Government
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* Category Filter Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant={selectedCategory ? "default" : "outline"} 
-                  size="icon"
-                  className="shrink-0"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {selectedCategory && (
-                  <>
-                    <DropdownMenuItem onClick={clearCategoryFilter} className="text-destructive">
-                      <X className="h-4 w-4 mr-2" />
-                      Clear Filter
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                {availableCategories.length === 0 ? (
-                  <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
-                ) : (
-                  availableCategories.map((cat) => (
-                    <DropdownMenuItem 
-                      key={cat} 
-                      onClick={() => setSelectedCategory(cat)}
-                      className={cn(selectedCategory === cat && "bg-accent")}
-                    >
-                      {cat}
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Active Category Badge */}
-          {selectedCategory && (
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Filtered by:</span>
-              <Badge 
-                variant="secondary" 
-                className="gap-1 cursor-pointer hover:bg-secondary/80"
-                onClick={clearCategoryFilter}
-              >
-                {selectedCategory}
-                <X className="h-3 w-3" />
-              </Badge>
-            </div>
+              <X className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
 
-        {/* Content */}
-        <main className="p-4 space-y-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground md:col-span-full">Loading posts...</div>
-          ) : filteredPosts?.length === 0 ? (
-            <Card className="md:col-span-full">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                {selectedCategory 
-                  ? `No posts found in "${selectedCategory}" category.`
-                  : activeFilter === 'all' 
-                  ? 'No posts yet. Be the first to submit a report!'
-                  : activeFilter === 'reports'
-                  ? 'No community reports yet.'
-                  : 'No government posts yet.'}
-              </CardContent>
-            </Card>
-          ) : (
-            filteredPosts?.map((post) => {
-              const postType = post.post_type as string;
-              const Icon = postTypeIcons[postType] || AlertCircle;
-              const likesCount = getLikesCount(post.id);
-              const liked = isLikedByUser(post.id);
-              const isAdminPost = postType === 'announcement' || postType === 'project';
+        {/* Filter Tabs */}
+        <div className="mb-6 sm:mb-8 flex gap-2 overflow-x-auto pb-2">
+          <Button
+            variant={activeTab === 'all' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('all')}
+            className="whitespace-nowrap"
+          >
+            All
+          </Button>
+          <Button
+            variant={activeTab === 'announcements' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('announcements')}
+            className="whitespace-nowrap gap-2"
+          >
+            <Megaphone className="h-4 w-4" />
+            Announcements
+          </Button>
+          <Button
+            variant={activeTab === 'government' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('government')}
+            className="whitespace-nowrap gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Government
+          </Button>
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Wall Items List */}
+        {!isLoading && filteredItems.length > 0 && (
+          <div className="space-y-3 sm:space-y-4">
+            {filteredItems.map((item, index) => {
+              const isAnnouncement = item.content_type === 'announcement';
+              const config = isAnnouncement 
+                ? typeConfig[(item as Announcement).type] 
+                : typeConfig.project;
+              const Icon = config.icon;
+              const likesCount = likes[item.id] || 0;
 
               return (
-                <Card 
-                  key={post.id} 
-                  className={cn(
-                    "overflow-hidden transition-all cursor-pointer hover:shadow-md",
-                    isAdminPost && "border-primary/30 bg-primary/5"
-                  )}
-                  onClick={() => handlePostClick(post)}
+                <Card
+                  key={item.id}
+                  className="overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 group border-0"
+                  style={{ animation: `slideUp 0.4s ease-out ${index * 100}ms backwards` }}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        "p-2 rounded-xl",
-                        isAdminPost ? "bg-primary/20" : "bg-muted"
-                      )}>
-                        <Icon className={cn(
-                          "h-5 w-5",
-                          isAdminPost ? "text-primary" : "text-muted-foreground"
-                        )} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center flex-wrap gap-2 mb-1">
-                          <h3 className="font-semibold text-sm line-clamp-1">{post.title}</h3>
-                          <Badge className={cn('text-xs', postTypeColors[postType])}>
-                            {postTypeLabels[postType]}
-                          </Badge>
+                  <CardContent className="p-0">
+                    <div className="flex flex-col sm:flex-row">
+                      {/* Image */}
+                      {item.image_url && (
+                        <div className="relative w-full sm:w-48 h-32 sm:h-auto overflow-hidden bg-muted flex-shrink-0">
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
                         </div>
-                        {post.category && (
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-                            {post.category}
-                          </span>
-                        )}
+                      )}
+
+                      {/* Content */}
+                      <div className="flex-1 p-3 sm:p-4 lg:p-6 flex flex-col justify-between">
+                        <div>
+                          {/* Badge and Type */}
+                          <div className="flex items-center gap-2 mb-2 sm:mb-3 flex-wrap">
+                            <div className={cn("p-1 sm:p-1.5 rounded-lg text-white bg-gradient-to-br flex-shrink-0", config.color)}>
+                              <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </div>
+                            <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", config.badge)}>
+                              {config.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
+                              {format(
+                                new Date(isAnnouncement ? (item as Announcement).published_at : (item as Project).created_at),
+                                'MMM d, yyyy'
+                              )}
+                            </span>
+                          </div>
+
+                          {/* Title and Excerpt */}
+                          <h3 className="text-base sm:text-lg lg:text-xl font-bold mb-1 sm:mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                            {isAnnouncement 
+                              ? ((item as Announcement).excerpt || (item as Announcement).content)
+                              : (item as Project).description
+                            }
+                          </p>
+                        </div>
+
+                        {/* Likes */}
+                        <div className="flex items-center gap-2 mt-2 sm:mt-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-muted-foreground hover:text-destructive text-xs sm:text-sm"
+                            onClick={() => handleLike(item.id)}
+                          >
+                            <Heart className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>{likesCount}</span>
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0 space-y-3">
-                    <p className="text-sm text-muted-foreground line-clamp-3">
-                      {post.content}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        {post.is_anonymous && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            Anonymous
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(post.created_at), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          'gap-1.5 text-muted-foreground hover:text-destructive',
-                          liked && 'text-destructive'
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLikeToggle(post.id);
-                        }}
-                        disabled={likeMutation.isPending || unlikeMutation.isPending}
-                      >
-                        <Heart className={cn('h-4 w-4', liked && 'fill-current')} />
-                        <span>{likesCount}</span>
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               );
-            })
-          )}
-        </main>
-      </div>
+            })}
+          </div>
+        )}
 
-      {/* Post Detail Dialog */}
-      <PostDetailDialog
-        post={selectedPost}
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        likesCount={selectedPost ? getLikesCount(selectedPost.id) : 0}
-        isLiked={selectedPost ? isLikedByUser(selectedPost.id) : false}
-        onLikeToggle={handleLikeToggle}
-        isLikeLoading={likeMutation.isPending || unlikeMutation.isPending}
-      />
+        {/* Empty State */}
+        {!isLoading && filteredItems.length === 0 && (
+          <div className="text-center py-8 sm:py-12">
+            <Megaphone className="h-10 sm:h-12 w-10 sm:w-12 text-muted-foreground mx-auto mb-3 sm:mb-4 opacity-50" />
+            <p className="text-base sm:text-lg font-medium text-muted-foreground">No posts found</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-2">
+              Check back later for announcements and government projects
+            </p>
+          </div>
+        )}
+      </div>
 
       <BottomNav />
     </div>

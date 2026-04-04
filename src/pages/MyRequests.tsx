@@ -2,13 +2,23 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BottomNav } from '@/components/BottomNav';
+import { Button } from '@/components/ui/button';
 import { AuthGuard } from '@/components/AuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, ClipboardList, Clock, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { StatusTracker } from '@/components/StatusTracker';
+import { ArrowLeft, ClipboardList, Clock, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { BottomNav } from '@/components/BottomNav';
+
+interface StatusHistory {
+  id: string;
+  old_status: string | null;
+  new_status: string;
+  changed_at: string;
+  notes: string | null;
+}
 
 interface ServiceRequest {
   id: string;
@@ -17,6 +27,8 @@ interface ServiceRequest {
   status: 'pending' | 'in_progress' | 'completed' | 'rejected';
   created_at: string;
   location: string | null;
+  description?: string;
+  photo_url?: string;
 }
 
 const statusConfig = {
@@ -30,6 +42,8 @@ const MyRequests = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistory[]>>({});
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -51,6 +65,22 @@ const MyRequests = () => {
 
     if (!error && data) {
       setRequests(data);
+      
+      // Fetch status history for each request
+      for (const request of data) {
+        const { data: historyData } = await supabase
+          .from('request_status_history')
+          .select('*')
+          .eq('request_id', request.id)
+          .order('changed_at', { ascending: true });
+
+        if (historyData) {
+          setStatusHistory(prev => ({
+            ...prev,
+            [request.id]: historyData
+          }));
+        }
+      }
     }
     setIsLoading(false);
   };
@@ -82,7 +112,7 @@ const MyRequests = () => {
             <span className="text-sm font-medium">Back</span>
           </button>
           <h1 className="text-2xl font-bold">My Requests</h1>
-          <p className="text-muted-foreground text-sm mt-1">Track your service requests</p>
+          <p className="text-muted-foreground text-sm mt-1">Track your service requests and their status</p>
         </div>
 
         {/* Content - Protected by AuthGuard */}
@@ -124,40 +154,89 @@ const MyRequests = () => {
               requests.map((request, index) => {
                 const config = statusConfig[request.status];
                 const Icon = config.icon;
+                const isExpanded = expandedId === request.id;
 
                 return (
-                  <Card 
-                    key={request.id} 
-                    variant="elevated"
+                  <div
+                    key={request.id}
                     className="animate-slide-up"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {request.category}
-                        </Badge>
-                        <Badge className={cn("text-xs", config.color)}>
-                          <Icon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
+                    <Card 
+                      variant="elevated"
+                      className="cursor-pointer transition-all hover:shadow-lg"
+                      onClick={() => setExpandedId(isExpanded ? null : request.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex-1">
+                            <Badge variant="secondary" className="text-xs mb-2 inline-block">
+                              {request.category}
+                            </Badge>
+                            <h3 className="font-semibold line-clamp-2">{request.title}</h3>
+                            {request.location && (
+                              <p className="text-sm text-muted-foreground mt-1">{request.location}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={cn("text-xs whitespace-nowrap", config.color)}>
+                              <Icon className="h-3 w-3 mr-1" />
+                              {config.label}
+                            </Badge>
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Submitted {format(new Date(request.created_at), 'MMM d, yyyy')}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Expanded Details */}
+                    {isExpanded && (
+                      <div className="mt-2 space-y-3 card-enter animation">
+                        {request.photo_url && (
+                          <Card>
+                            <CardContent className="p-4">
+                              <img
+                                src={request.photo_url}
+                                alt="Request attachment"
+                                className="w-full h-48 object-cover rounded-lg"
+                              />
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {request.description && (
+                          <Card>
+                            <CardContent className="p-4">
+                              <h4 className="font-semibold mb-2">Details</h4>
+                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                {request.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Status Tracker */}
+                        <StatusTracker
+                          status={request.status}
+                          history={statusHistory[request.id] || []}
+                          createdAt={request.created_at}
+                        />
                       </div>
-                      <h3 className="font-semibold">{request.title}</h3>
-                      {request.location && (
-                        <p className="text-sm text-muted-foreground mt-1">{request.location}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Submitted {format(new Date(request.created_at), 'MMM d, yyyy')}
-                      </p>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 );
               })
             )}
           </div>
         </AuthGuard>
       </div>
-
       <BottomNav currentPath="/" onNavigate={(path) => navigate(path)} />
     </div>
   );

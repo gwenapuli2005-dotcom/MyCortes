@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BottomNav } from '@/components/BottomNav';
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, AlertTriangle, Loader2, CheckCircle, AlertCircle, MapPin } from 'lucide-react';
 import { PhotoUpload } from '@/components/PhotoUpload';
 import { BarangaySelect } from '@/components/BarangaySelect';
 import { z } from 'zod';
+import { BottomNav } from '@/components/BottomNav';
 
 // Report categories
 const reportCategories = [
@@ -133,7 +134,6 @@ const ReportIssue = () => {
             </div>
           </div>
         </div>
-        <BottomNav currentPath="/services" />
       </div>
     );
   }
@@ -274,7 +274,6 @@ const ReportIssue = () => {
           </Card>
         </div>
       </div>
-
       <BottomNav currentPath="/services" />
     </div>
   );
