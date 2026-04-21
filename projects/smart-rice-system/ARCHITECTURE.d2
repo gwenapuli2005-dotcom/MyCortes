@@ -1,0 +1,100 @@
+# Smart Rice Quality Grading System - Architecture Diagram
+
+direction: down
+
+# Mobile App Layer
+Mobile_App: Mobile Application {
+  direction: down
+  
+  UI_Layer: UI Layer {
+    Home_Screen: Home Screen
+    Scan_Screen: Scan Screen
+    History_Screen: History Screen
+    Market_Screen: Market Screen
+    Settings_Screen: Settings Screen
+  }
+  
+  Navigation: Navigation & Routing {
+    Router: Expo Router
+    State: State Management
+  }
+  
+  Home_Screen -> Router
+  Scan_Screen -> Router
+  History_Screen -> Router
+  Market_Screen -> Router
+  Settings_Screen -> Router
+  Router -> State
+}
+
+# Business Logic Layer
+Business_Logic: Business Logic Layer {
+  direction: down
+  
+  AI_Engine: AI Grading Engine {
+    CNN_Model: CNN Model (MobileNetV2)
+    Feature_Extract: Feature Extraction
+    Quality_Classify: Quality Classification
+    Defect_Detect: Defect Detection
+    Confidence: Confidence Scoring
+  }
+  
+  Price_Engine: Price Prediction Engine {
+    Base_Price: Base Price Lookup
+    Seasonal_Adj: Seasonal Adjustment
+    Supply_Demand: Supply & Demand Factor
+    Location_Adj: Location Multiplier
+    Price_Calc: Price Calculation
+  }
+  
+  CNN_Model -> Feature_Extract -> Quality_Classify
+  Quality_Classify -> Defect_Detect -> Confidence
+  
+  Base_Price -> Seasonal_Adj -> Supply_Demand -> Location_Adj -> Price_Calc
+}
+
+# Data Layer
+Data_Layer: Data Layer {
+  direction: down
+  
+  Local_Storage: Local Storage {
+    AsyncStorage: AsyncStorage
+    Scan_History: Scan History
+    User_Prefs: User Preferences
+    Market_Cache: Market Data Cache
+  }
+  
+  Image_Storage: Image Storage {
+    Captured_Images: Captured Images
+    Processed_Images: Processed Images
+  }
+}
+
+# External Services (Optional)
+External_Services: External Services (Optional) {
+  direction: down
+  
+  Backend_API: Backend API {
+    Auth: Authentication
+    Sync: Data Synchronization
+    Market_Data: Real-time Market Data
+  }
+  
+  Cloud_Storage: Cloud Storage {
+    User_Data: User Data
+    Scan_Archive: Scan Archive
+  }
+}
+
+# Data Flow
+Mobile_App -> Business_Logic: Image + User Input
+Business_Logic -> Data_Layer: Store Results
+Data_Layer -> Mobile_App: Retrieve Data
+Mobile_App -> External_Services: Optional Sync
+External_Services -> Data_Layer: Market Updates
+
+# Styling
+Mobile_App.style.fill: #E8F5E9
+Business_Logic.style.fill: #E3F2FD
+Data_Layer.style.fill: #FFF3E0
+External_Services.style.fill: #F3E5F5

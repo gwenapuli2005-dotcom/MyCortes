@@ -1,0 +1,78 @@
+graph TD
+    subgraph Mobile["Mobile Application Layer"]
+        Home["Home Screen"]
+        Scan["Scan Screen"]
+        History["History Screen"]
+        Market["Market Screen"]
+        Settings["Settings Screen"]
+        Router["Expo Router"]
+        State["State Management"]
+    end
+    
+    subgraph BusinessLogic["Business Logic Layer"]
+        subgraph AIEngine["AI Grading Engine"]
+            CNN["CNN Model<br/>MobileNetV2"]
+            FeatureExt["Feature Extraction"]
+            QualityClass["Quality Classification"]
+            DefectDetect["Defect Detection"]
+            Confidence["Confidence Scoring"]
+        end
+        
+        subgraph PriceEngine["Price Prediction Engine"]
+            BasePrice["Base Price Lookup"]
+            SeasonalAdj["Seasonal Adjustment"]
+            SupplyDemand["Supply & Demand Factor"]
+            LocationAdj["Location Multiplier"]
+            PriceCalc["Price Calculation"]
+        end
+    end
+    
+    subgraph DataLayer["Data Layer"]
+        AsyncStorage["AsyncStorage"]
+        ScanHistory["Scan History"]
+        UserPrefs["User Preferences"]
+        MarketCache["Market Data Cache"]
+        ImageStorage["Image Storage"]
+    end
+    
+    subgraph External["External Services Optional"]
+        BackendAPI["Backend API"]
+        CloudStorage["Cloud Storage"]
+        MarketData["Real-time Market Data"]
+    end
+    
+    Home --> Router
+    Scan --> Router
+    History --> Router
+    Market --> Router
+    Settings --> Router
+    Router --> State
+    
+    State --> CNN
+    State --> BasePrice
+    
+    CNN --> FeatureExt --> QualityClass --> DefectDetect --> Confidence
+    BasePrice --> SeasonalAdj --> SupplyDemand --> LocationAdj --> PriceCalc
+    
+    Confidence --> AsyncStorage
+    PriceCalc --> AsyncStorage
+    
+    AsyncStorage --> ScanHistory
+    AsyncStorage --> UserPrefs
+    AsyncStorage --> MarketCache
+    AsyncStorage --> ImageStorage
+    
+    State --> ScanHistory
+    State --> UserPrefs
+    State --> MarketCache
+    
+    AsyncStorage -.->|Optional Sync| BackendAPI
+    BackendAPI -.->|Market Updates| MarketCache
+    CloudStorage -.->|Archive| ScanHistory
+    
+    style Mobile fill:#E8F5E9
+    style BusinessLogic fill:#E3F2FD
+    style AIEngine fill:#BBDEFB
+    style PriceEngine fill:#BBDEFB
+    style DataLayer fill:#FFF3E0
+    style External fill:#F3E5F5
